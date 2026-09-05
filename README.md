@@ -2,15 +2,16 @@
 
 **School Drop-off & Pickup Assistant**
 
-A cross-platform mobile app that automatically detects when a caregiver arrives at school and lets them quickly log a drop-off, pickup, or send a custom message to the family WhatsApp group.
+A WhatsApp bot + cross-platform mobile app for coordinating school drop-off and pickup. Family members send simple commands to the bot, and it replies with formatted updates.
 
-> **iOS + Android** · Zero cost · Privacy first · Firebase backend (free tier)
+> **WhatsApp Bot** + **iOS + Android** · Zero cost · Privacy first · Meta Cloud API (free tier)
 
 ---
 
 ## Table of Contents
 
 - [What It Does](#what-it-does)
+- [WhatsApp Bot](#whatsapp-bot)
 - [Screenshots (Flow)](#screenshots-flow)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
@@ -22,6 +23,7 @@ A cross-platform mobile app that automatically detects when a caregiver arrives 
   - [Run the App](#run-the-app)
   - [Build for Release](#build-for-release)
   - [Firebase Setup](#firebase-setup)
+  - [WhatsApp Bot Setup](#whatsapp-bot-setup)
 - [First-Time Setup (In-App)](#first-time-setup-in-app)
 - [How It Works](#how-it-works)
   - [Automatic Mode (Geofence)](#automatic-mode-geofence)
@@ -80,6 +82,68 @@ Opens WhatsApp → parent picks family group → taps Send
 ```
 
 **That's it.** No accounts, no servers, no subscriptions.
+
+---
+
+## WhatsApp Bot
+
+The primary way to use SchoolBuzz is via WhatsApp. Send a command, get a formatted reply.
+
+```
+Dad:    dropoff
+Bot:    👍 (reaction)
+Bot:    🏫 School Update
+        ✅ Drop-off confirmed
+        👤 By: Dad
+        🏫 School: Maple Elementary
+        📅 Monday, September 7, 2026
+        🕐 7:46 AM
+
+Mom:    pickup
+Bot:    🏫 School Update
+        🔁 Pickup confirmed
+        👤 By: Mom
+        🕐 3:18 PM
+
+Dad:    message Running 10 minutes late
+Bot:    🏫 School Message
+        💬 Running 10 minutes late
+```
+
+### Commands
+
+| Command | Shortcut | What |
+|---------|----------|------|
+| `dropoff` | `do` | Log morning drop-off |
+| `pickup` | `pu` | Log afternoon pickup |
+| `message text` | `msg text` | Send custom message |
+| `history` | `hist` | View last 10 events |
+| `status` | — | Show configuration |
+| `help` | — | Show all commands |
+
+### Architecture
+
+```
+WhatsApp (family group)
+       │
+       ▼
+Meta Cloud API (free tier)
+       │
+       ▼
+Webhook → Node.js Express server
+       │
+       ▼
+SQLite database + message formatter
+       │
+       ▼
+Meta Cloud API → WhatsApp reply
+```
+
+**Cost: $0/month** (1,000 free conversations/month)
+
+**Deployment:** Railway / Render / Fly.io (all have free tiers)
+
+Full setup guide: [bot/SETUP.md](bot/SETUP.md)
 
 ---
 
