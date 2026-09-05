@@ -5,6 +5,7 @@ import '../models/settings.dart';
 import '../providers/settings_provider.dart';
 import '../providers/event_provider.dart';
 import '../services/geofence_service.dart';
+import '../services/analytics_service.dart';
 import '../widgets/action_card.dart';
 import '../widgets/event_tile.dart';
 import '../widgets/arrival_bottom_sheet.dart';
@@ -22,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logScreen('home');
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final settings = context.read<SettingsProvider>().settings;
       GeofenceService.startMonitoring(settings);

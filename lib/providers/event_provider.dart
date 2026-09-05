@@ -4,6 +4,8 @@ import '../models/event.dart';
 import '../models/settings.dart';
 import '../repositories/event_repository.dart';
 import '../services/whatsapp_service.dart';
+import '../services/analytics_service.dart';
+import '../services/firestore_service.dart';
 
 class EventProvider extends ChangeNotifier {
   final _repo = EventRepository();
@@ -31,6 +33,16 @@ class EventProvider extends ChangeNotifier {
     await _repo.insert(event);
     _events.insert(0, event);
     notifyListeners();
+
+    // Analytics
+    AnalyticsService.logDropoff(
+      childName: settings.childName,
+      source: source == EventSource.geofence ? 'geofence' : 'manual',
+    );
+
+    // Optional Firestore sync
+    _trySyncEvent(event);
+
     return event;
   }
 
@@ -48,6 +60,16 @@ class EventProvider extends ChangeNotifier {
     await _repo.insert(event);
     _events.insert(0, event);
     notifyListeners();
+
+    // Analytics
+    AnalyticsService.logPickup(
+      childName: settings.childName,
+      source: source == EventSource.geofence ? 'geofence' : 'manual',
+    );
+
+    // Optional Firestore sync
+    _trySyncEvent(event);
+
     return event;
   }
 
@@ -65,6 +87,13 @@ class EventProvider extends ChangeNotifier {
     await _repo.insert(event);
     _events.insert(0, event);
     notifyListeners();
+
+    // Analytics
+    AnalyticsService.logMessage(childName: settings.childName);
+
+    // Optional Firestore sync
+    _trySyncEvent(event);
+
     return event;
   }
 
@@ -129,12 +158,27 @@ Sent from SchoolBuzz''';
       _events[idx] = event.copyWith(shareStatus: ShareStatus.shareOpened);
       notifyListeners();
     }
+
+    // Analytics
+    AnalyticsService.logShare(actionType: event.actionType.name);
   }
 
   Future<void> clearHistory() async {
     await _repo.clearAll();
     _events.clear();
     notifyListeners();
+    AnalyticsService.log('History cleared');
+  }
+
+  /// Try to sync event to Firestore (silently fails if not configured).
+  void _trySyncEvent(SchoolEvent event) {
+    try {
+      // Firestore sync is optional — requires familyId to be set
+      // For MVP, this is a no-op until family pairing is implemented
+      // FirestoreService.syncEvent(familyId, event);
+    } catch (e) {
+      AnalyticsService.logError(e, StackTrace.current, context: 'firestore_sync');
+    }
   }
 
   String _formatTime(DateTime dt) {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:geolocator/geolocator.dart';
 import '../models/settings.dart';
 import 'notification_service.dart';
+import 'analytics_service.dart';
 
 class GeofenceService {
   static Timer? _timer;
@@ -12,6 +13,8 @@ class GeofenceService {
     _timer?.cancel();
     if (!settings.isSetupComplete || !settings.appEnabled) return;
 
+    AnalyticsService.log('Geofence monitoring started for ${settings.schoolName}');
+
     _timer = Timer.periodic(const Duration(seconds: 30), (_) async {
       await _checkLocation(settings);
     });
@@ -21,6 +24,7 @@ class GeofenceService {
     _timer?.cancel();
     _timer = null;
     _insideGeofence = false;
+    AnalyticsService.log('Geofence monitoring stopped');
   }
 
   static Future<void> _checkLocation(AppSettings settings) async {
@@ -69,12 +73,19 @@ class GeofenceService {
 
         if (inDropWindow || inPickupWindow) {
           _lastTrigger = now;
+
+          // Analytics
+          AnalyticsService.logGeofenceEntry(schoolName: settings.schoolName);
+          AnalyticsService.setCrashKey('last_geofence_trigger', now.toIso8601String());
+
           await NotificationService.showArrivalNotification(settings);
         }
       } else if (!isInside) {
         _insideGeofence = false;
       }
-    } catch (_) {}
+    } catch (e, stack) {
+      AnalyticsService.logError(e, stack, context: 'geofence_check');
+    }
   }
 
   static int _parseTime(String time) {

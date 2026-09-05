@@ -4,7 +4,7 @@
 
 A cross-platform mobile app that automatically detects when a caregiver arrives at school and lets them quickly log a drop-off, pickup, or send a custom message to the family WhatsApp group.
 
-> **iOS + Android** · Zero cost · Privacy first · No backend required
+> **iOS + Android** · Zero cost · Privacy first · Firebase backend (free tier)
 
 ---
 
@@ -14,12 +14,14 @@ A cross-platform mobile app that automatically detects when a caregiver arrives 
 - [Screenshots (Flow)](#screenshots-flow)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
+- [Firebase Integration](#firebase-integration)
 - [Project Structure](#project-structure)
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Install Dependencies](#install-dependencies)
   - [Run the App](#run-the-app)
   - [Build for Release](#build-for-release)
+  - [Firebase Setup](#firebase-setup)
 - [First-Time Setup (In-App)](#first-time-setup-in-app)
 - [How It Works](#how-it-works)
   - [Automatic Mode (Geofence)](#automatic-mode-geofence)
@@ -135,6 +137,54 @@ Opens WhatsApp → parent picks family group → taps Send
 | **WhatsApp** | `url_launcher` + `share_plus` |
 | **Permissions** | `permission_handler` |
 | **UUID** | `uuid` package |
+| **Backend** | Firebase (Crashlytics, Analytics, Firestore, Auth, FCM, Remote Config) |
+
+---
+
+## Firebase Integration
+
+SchoolBuzz uses Firebase for optional cloud features. All Firebase services are within the **free tier** — estimated cost is **$0/month**.
+
+| Service | Purpose | Free Tier |
+|---------|---------|----------|
+| **Crashlytics** | Crash reporting + error tracking | Unlimited |
+| **Analytics** | Usage stats (screens, events, retention) | Unlimited |
+| **FCM** | Push notifications (notify other caregivers) | Unlimited |
+| **Cloud Firestore** | Sync events across caregiver devices | 50K reads/day, 20K writes/day |
+| **Firebase Auth** | Anonymous auth for device pairing | Unlimited |
+| **Remote Config** | Feature flags, config updates without app release | Unlimited |
+
+### Architecture with Firebase
+
+```
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  Dad's Phone │     │   Firebase   │     │ Mom's Phone  │
+│              │     │   Console    │     │              │
+│ SQLite + ────┼────►│ Firestore ◄──┼─────┤ SQLite +     │
+│ local events │     │ (sync)       │     │ local events │
+│              │     │              │     │              │
+│ Crashlytics ─┼────►│ Crashes      │     │ Crashlytics  │
+│ Analytics  ──┼────►│ Events       │     │ Analytics    │
+│ FCM ─────────┼────►│ Push ────────┼─────┤ FCM          │
+└──────────────┘     └──────────────┘     └──────────────┘
+```
+
+### Setup
+
+See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for step-by-step instructions.
+
+Quick start:
+
+```bash
+# 1. Install FlutterFire CLI
+dart pub global activate flutterfire_cli
+
+# 2. Configure (auto-generates firebase_options.dart)
+flutterfire configure --project=schoolbuzz-xxxxx
+
+# 3. Run
+flutter run
+```
 
 ---
 
@@ -216,10 +266,36 @@ SchoolBuzz/
 │   │   │                                 #     with DROP-OFF, PICKUP, MESSAGE actions
 │   │   │                                 #   - dismiss()
 │   │   │
-│   │   └── whatsapp_service.dart         # WhatsApp integration
-│   │                                     #   - share() — tries whatsapp:// URL first
-│   │                                     #   - Falls back to system share sheet
-│   │                                     #   - shareToSpecificChat() — wa.me link
+│   │   ├── whatsapp_service.dart         # WhatsApp integration
+│   │   │                                 #   - share() — tries whatsapp:// URL first
+│   │   │                                 #   - Falls back to system share sheet
+│   │   │                                 #   - shareToSpecificChat() — wa.me link
+│   │   │
+│   │   ├── analytics_service.dart        # Firebase Analytics + Crashlytics
+│   │   │                                 #   - logDropoff() / logPickup() / logMessage()
+│   │   │                                 #   - logShare() / logGeofenceEntry()
+│   │   │                                 #   - logScreen() — screen view tracking
+│   │   │                                 #   - logError() — non-fatal error reporting
+│   │   │                                 #   - setUser() — caregiver identification
+│   │   │                                 #   - log() — breadcrumb logging
+│   │   │
+│   │   ├── firestore_service.dart        # Cloud Firestore (optional sync)
+│   │   │                                 #   - createFamily() / joinFamily()
+│   │   │                                 #   - syncEvent() — push event to cloud
+│   │   │                                 #   - listenEvents() — real-time sync
+│   │   │                                 #   - syncSettings() — shared config
+│   │   │
+│   │   ├── fcm_service.dart              # Firebase Cloud Messaging
+│   │   │                                 #   - initialize() — token + permissions
+│   │   │                                 #   - subscribeToFamily()
+│   │   │                                 #   - Handles foreground/background messages
+│   │   │
+│   │   └── geofence_service.dart         # Cross-platform geofencing (updated)
+│   │                                     #   - Now logs analytics on geofence entry
+│   │                                     #   - Error reporting via Crashlytics
+│   │
+│   ├── firebase_options.dart             # Firebase config (auto-generated)
+│   │                                     #   - Run: flutterfire configure
 │   │
 │   ├── screens/                          # ── FULL-SCREEN UIs ──
 │   │   ├── setup_screen.dart             # First-run wizard
@@ -327,6 +403,24 @@ flutter build appbundle --release
 flutter build ios --release
 # Then open ios/Runner.xcworkspace in Xcode to archive & distribute
 ```
+
+### Firebase Setup
+
+Required for crash reporting, analytics, and optional cloud sync.
+
+```bash
+# 1. Install FlutterFire CLI
+dart pub global activate flutterfire_cli
+
+# 2. Configure (auto-generates lib/firebase_options.dart)
+flutterfire configure --project=schoolbuzz-xxxxx
+
+# 3. Place platform config files:
+#    android/app/google-services.json
+#    ios/Runner/GoogleService-Info.plist
+```
+
+See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed instructions.
 
 ---
 

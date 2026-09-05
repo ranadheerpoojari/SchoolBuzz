@@ -6,6 +6,7 @@ import '../providers/settings_provider.dart';
 import '../models/settings.dart';
 import '../services/geofence_service.dart';
 import '../services/notification_service.dart';
+import '../services/analytics_service.dart';
 
 class SetupScreen extends StatefulWidget {
   const SetupScreen({super.key});
@@ -83,6 +84,14 @@ class _SetupScreenState extends State<SetupScreen> {
     final provider = context.read<SettingsProvider>();
     await provider.save(settings);
     GeofenceService.startMonitoring(settings);
+
+    // Analytics
+    AnalyticsService.logSetupComplete();
+    AnalyticsService.setUser(
+      caregiverName: settings.caregiverName,
+      familyId: 'local_${settings.caregiverName}',
+    );
+    AnalyticsService.setCrashKey('school', settings.schoolName);
 
     if (mounted) Navigator.pushReplacementNamed(context, '/home');
   }
