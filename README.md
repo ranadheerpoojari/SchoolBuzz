@@ -775,6 +775,59 @@ A: The app falls back to the system share sheet, which lets you share via any ap
 
 ---
 
+## Deployment
+
+### Android (Google Play Store)
+
+```bash
+# 1. Generate signing keystore
+bash scripts/generate-keystore.sh
+
+# 2. Copy key template and fill in passwords
+cp android/key.properties.template android/key.properties
+nano android/key.properties
+
+# 3. Build release AAB
+flutter build appbundle --release
+
+# 4. Upload to Play Console
+# https://play.google.com/console
+```
+
+### iOS (Apple App Store)
+
+```bash
+# 1. Build for iOS
+flutter build ios --release
+
+# 2. Open Xcode and archive
+open ios/Runner.xcworkspace
+# Product → Archive → Distribute to App Store
+
+# 3. Upload via App Store Connect
+# https://appstoreconnect.apple.com
+```
+
+### CI/CD
+
+GitHub Actions automatically builds on every push to `main`:
+- ✅ Code analysis (`flutter analyze`)
+- ✅ Tests (`flutter test`)
+- ✅ Android APK + AAB build
+- ✅ iOS build (no codesign)
+
+Build artifacts are available in the Actions tab.
+
+### Privacy Policy
+
+Hosted on GitHub Pages:
+https://ranadheerpoojari.github.io/SchoolBuzz/privacy/
+
+Store listing copy (descriptions, keywords, screenshots guide):
+[docs/STORE_LISTING.md](docs/STORE_LISTING.md)
+
+---
+
 ## License
 
 MIT License
